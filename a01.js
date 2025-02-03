@@ -40,6 +40,38 @@ var upload = function () {
             // *** The code below is for the template to show you how to use matrices and update pixels on the canvas.
             // *** Modify/remove the following code and implement animation
 
+
+            /* OLD STASH
+            time = 0
+            draw()
+            console.log(ppm_img_data.data)
+            function draw() {
+                for (let i = 0; i < time && i < ppm_img_data.height; i++) {
+                    for (let j = 0; j < ppm_img_data.width; j++) {
+                        rotate(
+                            i * ppm_img_data.width,
+                            j,
+                            time
+                        )
+                        ppm_img_data.data[(i * ppm_img_data.width + j) * 4 + 3] = 255
+                    }
+                }
+                ctx.putImageData(ppm_img_data, 0, 0);
+                time += 1;
+                window.requestAnimationFrame(draw);
+            }
+
+
+            function rotate(x, y, amount) {
+                let matrix =
+                    [
+                        [Math.cos(amount), -Math.sin(amount)],
+                        [Math.sin(amount),  Math.cos(amount)],
+                    ]
+            }
+            */
+
+
 	    // Create a new image data object to hold the new image
             var newImageData = ctx.createImageData(width, height);
 	    var transMatrix = GetTranslationMatrix(0, height);// Translate image
