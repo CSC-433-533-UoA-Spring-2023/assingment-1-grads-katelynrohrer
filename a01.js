@@ -16,6 +16,7 @@ var width = 0;
 var height = 0;
 // The image data
 var ppm_img_data;
+var time = 0
 
 //Function to process upload
 var upload = function () {
@@ -71,37 +72,47 @@ var upload = function () {
 			}
 			*/
 
+			draw()
 
-			// Create a new image data object to hold the new image
-			var newImageData = ctx.createImageData(width, height);
-			var transMatrix = GetTranslationMatrix(0, height);// Translate image
-			var scaleMatrix = GetScalingMatrix(1, -1);// Flip image y axis
-			var matrix = MultiplyMatrixMatrix(transMatrix, scaleMatrix);// Mix the translation and scale matrices
-
-			// Loop through all the pixels in the image and set its color
-			for (let i = 0; i < ppm_img_data.data.length; i += 4) {
-
-				// Get the pixel location in x and y with (0,0) being the top left of the image
-				var pixel = [Math.floor(i / 4) % width,
-					Math.floor(i / 4) / width, 1];
-
-				// Get the location of the sample pixel
-				var samplePixel = MultiplyMatrixVector(matrix, pixel);
-
-				// Floor pixel to integer
-				samplePixel[0] = Math.floor(samplePixel[0]);
-				samplePixel[1] = Math.floor(samplePixel[1]);
-
-				setPixelColor(newImageData, samplePixel, i);
-			}
-
-			// Draw the new image
-			ctx.putImageData(newImageData, canvas.width / 2 - width / 2, canvas.height / 2 - height / 2);
-
-			// Show matrix
-			showMatrix(matrix);
 		}
 	}
+}
+
+function draw() {
+	// Create a new image data object to hold the new image
+	var newImageData = ctx.createImageData(width, height);
+	var rotateMatrix = GetRotationMatrix(Math.floor(time/4) % 360);// Translate image
+	var transMatrix = GetTranslationMatrix(-Math.floor(width/4), -Math.floor(height/4));
+	var scaleMatrix = GetScalingMatrix(2, 2);// Shrink image y axis
+
+	var matrix = MultiplyMatrixMatrix(MultiplyMatrixMatrix(rotateMatrix, scaleMatrix), transMatrix);// Mix the translation and scale matrices
+
+	// Loop through all the pixels in the image and set its color
+	for (let i = 0; i < newImageData.data.length; i += 4) {
+
+		// Get the pixel location in x and y with (0,0) being the top left of the image
+		var pixel = [Math.floor(i / 4) % width,
+					 Math.floor(i / 4) / width,
+				 	 1];
+
+		// Get the location of the sample pixel
+		var samplePixel = MultiplyMatrixVector(matrix, pixel);
+
+		// Floor pixel to integer
+		samplePixel[0] = Math.floor(samplePixel[0]);
+		samplePixel[1] = Math.floor(samplePixel[1]);
+
+		setPixelColor(newImageData, samplePixel, i);
+	}
+	// console.log(newImageData.data.subarray(0, 4))
+
+	// Draw the new image
+	ctx.putImageData(newImageData, canvas.width / 2 - width / 2, canvas.height / 2 - height / 2);
+
+	// Show matrix
+	showMatrix(matrix);
+	time += 1;
+	window.requestAnimationFrame(draw);
 }
 
 // Show transformation matrix on HTML
@@ -183,7 +194,7 @@ function parsePPM(file_data) {
 		image_data.data[i + 2] = bytes[pixel_pos * 3 + 2]; // Blue ~ i + 2
 		image_data.data[i + 3] = 255; // A channel is deafult to 255
 	}
-	ctx.putImageData(image_data, canvas.width / 2 - width / 2, canvas.height / 2 - height / 2);
+	// ctx.putImageData(image_data, canvas.width / 2 - width / 2, canvas.height / 2 - height / 2);
 	//ppm_img_data = ctx.getImageData(0, 0, canvas.width, canvas.height);   // This gives more than just the image I want??? I think it grabs white space from top left?
 	ppm_img_data = image_data;
 }
