@@ -3,22 +3,23 @@
   Skeleton Author: Joshua A. Levine
   Modified by: Amir Mohammad Esmaieeli Sikaroudi
   Email: amesmaieeli@email.arizona.edu
+  Completed by: Katelyn Rohrer
 */
 
 
-//access DOM elements we'll use
+// Access DOM elements we'll use
 var input = document.getElementById("load_image");
 var canvas = document.getElementById('canvas');
 var ctx = canvas.getContext('2d');
 
 // The width and height of the image
-var width = 0;
-var height = 0;
+var width = 800;
+var height = 800;
 // The image data
 var ppm_img_data;
-var time = 0
+var degrees = 0
 
-//Function to process upload
+// Function to process upload
 var upload = function () {
 	if (input.files.length > 0) {
 		var file = input.files[0];
@@ -28,33 +29,35 @@ var upload = function () {
 		fReader.readAsBinaryString(file);
 
 		fReader.onload = function (e) {
-			//if successful, file data has the contents of the uploaded file
+			// if successful, file data has the contents of the uploaded file
 			var file_data = fReader.result;
 			parsePPM(file_data);
 
-			/*
-			* TODO: ADD CODE HERE TO DO 2D TRANSFORMATION and ANIMATION
-			* Modify any code if needed
-			* Hint: Write a rotation method, and call WebGL APIs to reuse the method for animation
-			*/
-
-			// *** The code below is for the template to show you how to use matrices and update pixels on the canvas.
-			// *** Modify/remove the following code and implement animation
-			
 			draw()
-
 		}
 	}
 }
 
 function draw() {
 	// Create a new image data object to hold the new image
-	var newImageData = ctx.createImageData(width, height);
-	var rotateMatrix = GetRotationMatrix(Math.floor(time/4) % 360);// Translate image
-	var transMatrix = GetTranslationMatrix(-Math.floor(width/4), -Math.floor(height/4));
-	var scaleMatrix = GetScalingMatrix(2, 2);// Shrink image y axis
+	var newImageData = ctx.createImageData(Math.floor(width), Math.floor(height));
 
-	var matrix = MultiplyMatrixMatrix(MultiplyMatrixMatrix(rotateMatrix, scaleMatrix), transMatrix);// Mix the translation and scale matrices
+	// Center the image for translating
+	var transMatrix = GetTranslationMatrix(width/2, height/2);
+
+	// Rotate it
+	var rotateMatrix = GetRotationMatrix(degrees % 360);
+
+	// Scale to the corners
+	var rads = degrees * Math.PI / 180;
+	var newWidth = width * Math.abs(Math.cos(rads)) + height * Math.abs(Math.sin(rads));
+	var newHeight = width * Math.abs(Math.sin(rads)) + height * Math.abs(Math.cos(rads));
+	var scaleMatrix = GetScalingMatrix(newWidth/width, newHeight/height);
+
+	// Uncenter image for display
+	var transMatrixUndo = GetTranslationMatrix(-width/2, -height/2);
+
+	var matrix = MultiplyMatrixMatrix(MultiplyMatrixMatrix(MultiplyMatrixMatrix(transMatrix, rotateMatrix), scaleMatrix), transMatrixUndo); // Mix the translation and scale matrices
 
 	// Loop through all the pixels in the image and set its color
 	for (let i = 0; i < newImageData.data.length; i += 4) {
@@ -73,14 +76,14 @@ function draw() {
 
 		setPixelColor(newImageData, samplePixel, i);
 	}
-	// console.log(newImageData.data.subarray(0, 4))
 
 	// Draw the new image
+	ctx.reset();
 	ctx.putImageData(newImageData, canvas.width / 2 - width / 2, canvas.height / 2 - height / 2);
 
 	// Show matrix
 	showMatrix(matrix);
-	time += 1;
+	degrees += 1;
 	window.requestAnimationFrame(draw);
 }
 
@@ -99,6 +102,16 @@ function showMatrix(matrix) {
 // Sets the color of a pixel in the new image data
 function setPixelColor(newImageData, samplePixel, i) {
 	var offset = ((samplePixel[1] - 1) * width + samplePixel[0] - 1) * 4;
+
+	// Check bounds and set to clear if out of bounds
+	if (samplePixel[0] < 0 || samplePixel[0] > height) {
+		newImageData.data[i + 3] = 0;
+		return;
+	}
+	if (samplePixel[1] > width || samplePixel[1] < 0 ) {
+		newImageData.data[i + 3] = 0;
+		return
+	}
 
 	// Set the new pixel color
 	newImageData.data[i] = ppm_img_data.data[offset];
@@ -124,10 +137,10 @@ function parsePPM(file_data) {
 		} //in case, it gets nothing, just skip it
 		if (counter === 0) {
 			format = lines[i];
-		} else if (counter === 1) {
-			width = lines[i];
-		} else if (counter === 2) {
-			height = lines[i];
+		// } else if (counter === 1) {
+		// 	width = lines[i];
+		// } else if (counter === 2) {
+		// 	height = lines[i];
 		} else if (counter === 3) {
 			max_v = Number(lines[i]);
 		} else if (counter > 3) {
@@ -150,9 +163,13 @@ function parsePPM(file_data) {
 		// convert raw data byte-by-byte
 		bytes[i] = raw_data.charCodeAt(i);
 	}
+
 	// update width and height of canvas
-	document.getElementById("canvas").setAttribute("width", window.innerWidth.toString());
-	document.getElementById("canvas").setAttribute("height", window.innerHeight.toString());
+	document.getElementById("canvas").setAttribute("width", width.toString());
+	document.getElementById("canvas").setAttribute("height", height.toString());
+	canvas.width = width;
+	canvas.height = height;
+
 	// create ImageData object
 	var image_data = ctx.createImageData(width, height);
 	// fill ImageData
@@ -164,7 +181,7 @@ function parsePPM(file_data) {
 		image_data.data[i + 3] = 255; // A channel is deafult to 255
 	}
 	// ctx.putImageData(image_data, canvas.width / 2 - width / 2, canvas.height / 2 - height / 2);
-	//ppm_img_data = ctx.getImageData(0, 0, canvas.width, canvas.height);   // This gives more than just the image I want??? I think it grabs white space from top left?
+	ppm_img_data = ctx.getImageData(0, 0, canvas.width, canvas.height);   // This gives more than just the image I want??? I think it grabs white space from top left?
 	ppm_img_data = image_data;
 }
 
